@@ -1,91 +1,275 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Traffic Cameras</title>
-    <style>
-        body { background: #111; color: #eee; font-family: sans-serif; }
-        .cam { margin-bottom: 30px; }
-        video { width: 100%; max-width: 800px; background: #000; }
-        h2 { margin: 5px 0; }
-        p { margin: 3px 0 10px; color: #bbb; }
-    </style>
+<meta charset="UTF-8">
+<title>Camera Wall</title>
+<style>
+    body {
+        background: #000;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: sans-serif;
+        color: #ddd;
+    }
+    h1 {
+        text-align: center;
+        padding: 8px;
+        margin: 0;
+        font-size: 18px;
+        background: #111;
+        color: #eee;
+    }
+    .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 4px;
+        padding: 4px;
+        height: calc(100vh - 40px);
+        box-sizing: border-box;
+    }
+    .cam {
+        background: #000;
+        position: relative;
+        overflow: hidden;
+    }
+    .cam video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        background: #000;
+    }
+    .label {
+        position: absolute;
+        bottom: 4px;
+        left: 4px;
+        padding: 3px 6px;
+        background: rgba(0,0,0,0.7);
+        font-size: 12px;
+        border-radius: 4px;
+        max-width: calc(100% - 8px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .gear {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        padding: 3px 6px;
+        background: rgba(0,0,0,0.7);
+        font-size: 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        user-select: none;
+    }
+    /* Context menu */
+    #camera-menu {
+        position: fixed;
+        background: #111;
+        border: 1px solid #444;
+        border-radius: 4px;
+        padding: 4px 0;
+        z-index: 9999;
+        min-width: 220px;
+        max-height: 60vh;
+        overflow-y: auto;
+        display: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.8);
+    }
+    #camera-menu h3 {
+        margin: 4px 10px 6px;
+        font-size: 13px;
+        color: #aaa;
+    }
+    .menu-item {
+        padding: 6px 10px;
+        font-size: 13px;
+        cursor: pointer;
+        border-bottom: 1px solid #222;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .menu-item:last-child {
+        border-bottom: none;
+    }
+    .menu-item:hover {
+        background: #333;
+    }
+
+    @media (orientation: portrait) {
+        .grid {
+            height: calc(100vh - 40px);
+        }
+    }
+</style>
 </head>
 <body>
 
-<h1>Traffic Cameras</h1>
+<h1>Traffic Camera Wall</h1>
 
-<div class="cam">
-    <h2>MM 178 NB - GaDOT Camera</h2>
-    <p>MM178 GA DOT CAMERA</p>
-    <video controls playsinline src="https://sfs-msc-pub-lq-05.navigator.dot.ga.gov/rtplive/GDOT-CCTV-1243/chunklist_w1320689654.m3u8"></video>
+<div class="grid">
+    <div class="cam" data-slot="0">
+        <video controls playsinline></video>
+        <div class="label"></div>
+        <div class="gear">⚙</div>
+    </div>
+
+    <div class="cam" data-slot="1">
+        <video controls playsinline></video>
+        <div class="label"></div>
+        <div class="gear">⚙</div>
+    </div>
+
+    <div class="cam" data-slot="2">
+        <video controls playsinline></video>
+        <div class="label"></div>
+        <div class="gear">⚙</div>
+    </div>
+
+    <div class="cam" data-slot="3">
+        <video controls playsinline></video>
+        <div class="label"></div>
+        <div class="gear">⚙</div>
+    </div>
 </div>
 
-<div class="cam">
-    <h2>MM 2</h2>
-    <p>Mile Marker 2 - Just before GA Border</p>
-    <video controls playsinline src="https://s20.us-east-1.skyvdn.com/rtplive/30302/chunklist_w1067583639.m3u8"></video>
+<!-- Context menu -->
+<div id="camera-menu">
+    <h3>Select Camera</h3>
+    <div id="camera-menu-list"></div>
 </div>
 
-<div class="cam">
-    <h2>MM 19 - Clemson Blvd</h2>
-    <p>Mile Marker 19 - Clemson Blvd - Closest Lanes are SB Traffic</p>
-    <video controls playsinline src="https://s20.us-east-1.skyvdn.com/rtplive/30057/chunklist_w2092101538.m3u8"></video>
-</div>
+<script>
+    // All your cameras
+    const cameras = [
+        { name: 'MM 178 NB - GaDOT Camera', url: 'https://sfs-msc-pub-lq-05.navigator.dot.ga.gov/rtplive/GDOT-CCTV-1243/chunklist_w1320689654.m3u8', description: 'MM178 GA DOT CAMERA' },
+        { name: 'MM 2', url: 'https://s20.us-east-1.skyvdn.com/rtplive/30302/chunklist_w1067583639.m3u8', description: 'Mile Marker 2 - Just before GA Border' },
+        { name: 'MM 19 - Clemson Blvd', url: 'https://s20.us-east-1.skyvdn.com/rtplive/30057/chunklist_w2092101538.m3u8', description: 'Mile Marker 19 - Clemson Blvd - Closest Lanes are SB Traffic' },
+        { name: 'MM 21 - HWY 178', url: 'https://s19.us-east-1.skyvdn.com/rtplive/30056/chunklist_w234287558.m3u8', description: 'Mile Marker 21 - Highway 178 - Closest Lanes are SB Traffic' },
+        { name: 'MM 23 - Rest Area', url: 'https://s18.us-east-1.skyvdn.com/rtplive/30055/chunklist_w1988576416.m3u8', description: 'Mile Marker 23 - Rest Area - Closest Lanes are SB Traffic' },
+        { name: 'MM 24', url: 'https://s20.us-east-1.skyvdn.com/rtplive/30054/chunklist_w1763131792.m3u8', description: 'Mile Marker 24 - Closest Lanes are NB Traffic' },
+        { name: 'MM 27 - HWY 81', url: 'https://s19.us-east-1.skyvdn.com/rtplive/30053/chunklist_w682873545.m3u8', description: 'Mile Marker 27 - Highway 81 - Closest Lanes are SB Traffic' },
+        { name: 'MM 32 - HWY 8', url: 'https://s18.us-east-1.skyvdn.com/rtplive/30052/chunklist_w991875225.m3u8', description: 'Mile Marker 32 - Highway 8 - Closest Lanes are NB Traffic' },
+        { name: 'MM 34 - US-29', url: 'https://s20.us-east-1.skyvdn.com/rtplive/30051/chunklist_w766310199.m3u8', description: 'Mile Marker 34 - US-29 - Closest Lanes are SB Traffic' },
+        { name: 'MM 40 - HWY 153', url: 'https://s20.us-east-1.skyvdn.com/rtplive/30062/chunklist_w508245393.m3u8', description: 'Mile Marker 40 - Highway 153 - Closest Lanes are NB Traffic' },
+        { name: 'MM 41', url: 'https://s19.us-east-1.skyvdn.com/rtplive/30061/chunklist_w2135200303.m3u8', description: 'Mile Marker 41 - Closest Lanes are NB Traffic' },
+        { name: 'MM 42', url: 'https://s18.us-east-1.skyvdn.com/rtplive/30060/chunklist_w1428496045.m3u8', description: 'Mile Marker 42 - Closest Lanes are NB Traffic' }
+    ];
 
-<div class="cam">
-    <h2>MM 21 - HWY 178</h2>
-    <p>Mile Marker 21 - Highway 178 - Closest Lanes are SB Traffic</p>
-    <video controls playsinline src="https://s19.us-east-1.skyvdn.com/rtplive/30056/chunklist_w234287558.m3u8"></video>
-</div>
+    // Default cameras for the 4 slots (indices into cameras[])
+    const defaultLayout = [0, 2, 8, 10]; // tweak if you want different defaults
 
-<div class="cam">
-    <h2>MM 23 - Rest Area</h2>
-    <p>Mile Marker 23 - Rest Area - Closest Lanes are SB Traffic</p>
-    <video controls playsinline src="https://s18.us-east-1.skyvdn.com/rtplive/30055/chunklist_w1988576416.m3u8"></video>
-</div>
+    const slots = document.querySelectorAll('.cam');
+    const menu = document.getElementById('camera-menu');
+    const menuList = document.getElementById('camera-menu-list');
+    let activeSlotIndex = null;
 
-<div class="cam">
-    <h2>MM 24</h2>
-    <p>Mile Marker 24 - Closest Lanes are NB Traffic</p>
-    <video controls playsinline src="https://s20.us-east-1.skyvdn.com/rtplive/30054/chunklist_w1763131792.m3u8"></video>
-</div>
+    function setSlotCamera(slotIndex, camIndex) {
+        const slot = slots[slotIndex];
+        if (!slot) return;
+        const video = slot.querySelector('video');
+        const label = slot.querySelector('.label');
+        const cam = cameras[camIndex];
+        if (!cam) return;
 
-<div class="cam">
-    <h2>MM 27 - HWY 81</h2>
-    <p>Mile Marker 27 - Highway 81 - Closest Lanes are SB Traffic</p>
-    <video controls playsinline src="https://s19.us-east-1.skyvdn.com/rtplive/30053/chunklist_w682873545.m3u8"></video>
-</div>
+        // Preserve playing state if desired:
+        const wasPlaying = !video.paused && !video.ended;
 
-<div class="cam">
-    <h2>MM 32 - HWY 8</h2>
-    <p>Mile Marker 32 - Highway 8 - Closest Lanes are NB Traffic</p>
-    <video controls playsinline src="https://s18.us-east-1.skyvdn.com/rtplive/30052/chunklist_w991875225.m3u8"></video>
-</div>
+        video.src = cam.url;
+        video.setAttribute('data-cam-index', camIndex);
+        label.textContent = cam.name;
 
-<div class="cam">
-    <h2>MM 34 - US-29</h2>
-    <p>Mile Marker 34 - US-29 - Closest Lanes are SB Traffic</p>
-    <video controls playsinline src="https://s20.us-east-1.skyvdn.com/rtplive/30051/chunklist_w766310199.m3u8"></video>
-</div>
+        if (wasPlaying) {
+            video.play().catch(() => {});
+        }
+    }
 
-<div class="cam">
-    <h2>MM 40 - HWY 153</h2>
-    <p>Mile Marker 40 - Highway 153 - Closest Lanes are NB Traffic</p>
-    <video controls playsinline src="https://s20.us-east-1.skyvdn.com/rtplive/30062/chunklist_w508245393.m3u8"></video>
-</div>
+    function hideMenu() {
+        menu.style.display = 'none';
+        activeSlotIndex = null;
+    }
 
-<div class="cam">
-    <h2>MM 41</h2>
-    <p>Mile Marker 41 - Closest Lanes are NB Traffic</p>
-    <video controls playsinline src="https://s19.us-east-1.skyvdn.com/rtplive/30061/chunklist_w2135200303.m3u8"></video>
-</div>
+    function showMenu(x, y, slotIndex) {
+        activeSlotIndex = slotIndex;
 
-<div class="cam">
-    <h2>MM 42</h2>
-    <p>Mile Marker 42 - Closest Lanes are NB Traffic</p>
-    <video controls playsinline src="https://s18.us-east-1.skyvdn.com/rtplive/30060/chunklist_w1428496045.m3u8"></video>
-</div>
+        // Position menu within viewport
+        const menuWidth = 240;
+        const menuHeight = Math.min(400, window.innerHeight * 0.6);
+        let posX = x;
+        let posY = y;
+
+        if (posX + menuWidth > window.innerWidth) {
+            posX = window.innerWidth - menuWidth - 4;
+        }
+        if (posY + menuHeight > window.innerHeight) {
+            posY = window.innerHeight - menuHeight - 4;
+        }
+
+        menu.style.left = posX + 'px';
+        menu.style.top = posY + 'px';
+        menu.style.display = 'block';
+    }
+
+    function buildMenu() {
+        menuList.innerHTML = '';
+        cameras.forEach((cam, idx) => {
+            const item = document.createElement('div');
+            item.className = 'menu-item';
+            item.textContent = cam.name + (cam.description ? ' - ' + cam.description : '');
+            item.dataset.index = idx;
+            item.addEventListener('click', () => {
+                if (activeSlotIndex !== null) {
+                    setSlotCamera(activeSlotIndex, idx);
+                }
+                hideMenu();
+            });
+            menuList.appendChild(item);
+        });
+    }
+
+    function initSlots() {
+        slots.forEach((slot, idx) => {
+            const defaultCamIndex = defaultLayout[idx] ?? idx % cameras.length;
+            setSlotCamera(idx, defaultCamIndex);
+
+            // Right-click / context menu
+            slot.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                showMenu(e.clientX, e.clientY, idx);
+            });
+
+            // Gear button click (good for touch/iPad)
+            const gear = slot.querySelector('.gear');
+            gear.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const rect = slot.getBoundingClientRect();
+                const cx = rect.left + rect.width - 10;
+                const cy = rect.top + 20;
+                showMenu(cx, cy, idx);
+            });
+        });
+    }
+
+    // Global listeners
+    document.addEventListener('click', (e) => {
+        if (!menu.contains(e.target)) {
+            hideMenu();
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            hideMenu();
+        }
+    });
+
+    // Init
+    buildMenu();
+    initSlots();
+</script>
 
 </body>
 </html>
